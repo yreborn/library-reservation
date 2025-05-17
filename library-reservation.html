@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书馆座位预约系统</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --accent-color: #1abc9c;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-light: #7f8c8d;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            position: relative;
+            display: inline-block;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            margin-top: 15px;
+        }
+
+        .status-bar {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-info {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .available {
+            background-color: var(--accent-color);
+        }
+
+        .occupied {
+            background-color: #e74c3c;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button.danger {
+            background: #e74c3c;
+        }
+
+        button.danger:hover {
+            background: #c0392b;
+        }
+
+        .seats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .area {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .area:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .area-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .area-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .area-info {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .seats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .seat {
+            aspect-ratio: 1;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .seat.available {
+            background-color: rgba(26, 188, 156, 0.2);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+        }
+
+        .seat.available:hover {
+            background-color: rgba(26, 188, 156, 0.3);
+            transform: scale(1.05);
+        }
+
+        .seat.occupied {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: var(--transition);
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .close-modal:hover {
+            color: var(--text-color);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .tech-decoration {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(52, 152, 219, 0.1) 0%, rgba(52, 152, 219, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .tech-decoration::before {
+            content: '';
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(26, 188, 156, 0.1) 0%, rgba(26, 188, 156, 0) 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .tech-lines {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            pointer-events: none;
+            opacity: 0.1;
+            overflow: hidden;
+        }
+
+        .tech-lines::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                transform: translateY(0) translateX(-50%);
+            }
+            100% {
+                transform: translateY(100px) translateX(-50%);
+            }
+        }
+
+        .user-info {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: #e74c3c;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .success {
+            background-color: var(--accent-color);
+        }
+
+        .error {
+            background-color: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+            .seats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .status-info {
+                width: 100%;
+                justify-content: space-around;
+            }
+            
+            .admin-controls {
+                width: 100%;
+            }
+            
+            .admin-controls button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>图书馆座位预约系统</h1>
+            <p class="subtitle">选择空闲座位，轻松预约学习空间</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-info">
+                <div class="status-item">
+                    <div class="status-dot available"></div>
+                    <span>空闲座位</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot occupied"></div>
+                    <span>已预约</span>
+                </div>
+                <div id="seats-count">
+                    可用座位: <span id="available-count">0</span> / <span id="total-count">0</span>
+                </div>
+            </div>
+            <div class="admin-controls">
+                <button id="export-data">导出预约数据</button>
+                <button id="import-data">导入预约数据</button>
+                <button id="reset-all" class="danger">清空所有预约</button>
+            </div>
+        </div>
+
+        <div class="seats-container" id="seats-container">
+            <!-- 座位区域将通过JS动态生成 -->
+        </div>
+    </div>
+
+    <!-- 预约模态框 -->
+    <div class="modal" id="reservation-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">预约座位</h2>
+                <button class="close-modal" id="close-modal">&times;</button>
+            </div>
+            <form id="reservation-form">
+                <div class="form-group">
+                    <label for="name">姓名</label>
+                    <input type="text" id="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration">预约时长</label>
+                    <select id="duration" required>
+                        <option value="1">1小时</option>
+                        <option value="2">2小时</option>
+                        <option value="3">3小时</option>
+                        <option value="4">4小时</option>
+                        <option value="all-day">全天</option>
+                    </select>
+                </div>
+                <button type="submit">确认预约</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 装饰元素 -->
+    <div class="tech-decoration"></div>
+    <div class="tech-lines"></div>
+
+    <script>
+        // 图书馆区域和座位数据
+        const libraryAreas = [
+            { id: 'A', name: '自习区 A', totalSeats: 16, description: '安静自习区，禁止交谈' },
+            { id: 'B', name: '自习区 B', totalSeats: 12, description: '小组讨论区，允许低声交流' },
+            { id: 'C', name: '电子阅览区', totalSeats: 8, description: '配备电脑，可上网查询资料' },
+            { id: 'D', name: '期刊阅览区', totalSeats: 8, description: '提供最新期刊阅览' }
+        ];
+
+        // DOM 元素
+        const seatsContainer = document.getElementById('seats-container');
+        const availableCountEl = document.getElementById('available-count');
+        const totalCountEl = document.getElementById('total-count');
+        const resetAllBtn = document.getElementById('reset-all');
+        const exportDataBtn = document.getElementById('export-data');
+        const importDataBtn = document.getElementById('import-data');
+        const reservationModal = document.getElementById('reservation-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        const reservationForm = document.getElementById('reservation-form');
+        const toastEl = document.getElementById('toast');
+
+        // 当前选中的座位
+        let selectedSeat = null;
+
+        // 从本地存储加载预约数据
+        let reservations = JSON.parse(localStorage.getItem('libraryReservations')) || {};
+
+        // 初始化座位
+        function initializeSeats() {
+            let totalSeats = 0;
+            let availableSeats = 0;
+
+            // 清空容器
+            seatsContainer.innerHTML = '';
+
+            // 为每个区域创建座位
+            libraryAreas.forEach(area => {
+                const areaElement = document.createElement('div');
+                areaElement.className = 'area';
+                
+                areaElement.innerHTML = `
+                    <div class="area-header">
+                        <h3 class="area-title">${area.name}</h3>
+                        <span class="area-info">${area.description}</span>
+                    </div>
+                    <div class="seats-grid" id="area-${area.id}"></div>
+                `;
+                
+                seatsContainer.appendChild(areaElement);
+                
+                const seatsGrid = document.getElementById(`area-${area.id}`);
+                
+                // 创建座位
+                for (let i = 1; i <= area.totalSeats; i++) {
+                    const seatId = `${area.id}-${i}`;
+                    const isOccupied = reservations[seatId] !== undefined;
+                    
+                    const seatElement = document.createElement('div');
+                    seatElement.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
+                    seatElement.id = seatId;
+                    seatElement.textContent = i;
+                    
+                    if (isOccupied) {
+                        const userInfo = document.createElement('div');
+                        userInfo.className = 'user-info';
+                        userInfo.textContent = reservations[seatId].name;
+                        seatElement.appendChild(userInfo);
+                        // 已预约的座位不添加点击事件
+                    } else {
+                        seatElement.addEventListener('click', () => openReservationModal(seatId));
+                        availableSeats++;
+                    }
+                    
+                    seatsGrid.appendChild(seatElement);
+                    totalSeats++;
+                }
+            });
+
+            // 更新座位计数
+            availableCountEl.textContent = availableSeats;
+            totalCountEl.textContent = totalSeats;
+        }
+
+        // 打开预约模态框
+        function openReservationModal(seatId) {
+            // 再次检查座位是否可用（防止多窗口操作冲突）
+            if (reservations[seatId]) {
+                showToast('该座位已被预约', 'error');
+                return;
+            }
+            
+            selectedSeat = seatId;
+            reservationModal.classList.add('active');
+        }
+
+        // 关闭预约模态框
+        function closeReservationModal() {
+            reservationModal.classList.remove('active');
+            reservationForm.reset();
+            selectedSeat = null;
+        }
+
+        // 处理预约表单提交
+        reservationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!selectedSeat) return;
+            
+            // 再次检查座位是否可用
+            if (reservations[selectedSeat]) {
+                showToast('该座位已被预约', 'error');
+                closeReservationModal();
+                return;
+            }
+            
+            const name = document.getElementById('name').value;
+            const duration = document.getElementById('duration').value;
+            
+            // 保存预约信息
+            reservations[selectedSeat] = {
+                name,
+                duration,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 更新本地存储
+            localStorage.setItem('libraryReservations', JSON.stringify(reservations));
+            
+            // 更新 UI
+            const seatElement = document.getElementById(selectedSeat);
+            seatElement.className = 'seat occupied';
+            
+            // 移除点击事件（修复bug：预约后仍可点击）
+            const newSeatElement = seatElement.cloneNode(true);
+            seatElement.parentNode.replaceChild(newSeatElement, seatElement);
+            
+            const userInfo = document.createElement('div');
+            userInfo.className = 'user-info';
+            userInfo.textContent = name;
+            newSeatElement.appendChild(userInfo);
+            
+            // 更新可用座位计数
+            availableCountEl.textContent = parseInt(availableCountEl.textContent) - 1;
+            
+            // 显示成功消息
+            showToast('预约成功！', 'success');
+            
+            // 关闭模态框
+            closeReservationModal();
+        });
+
+        // 导出预约数据到文本文件
+        exportDataBtn.addEventListener('click', function() {
+            const dataStr = JSON.stringify(reservations, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'text/plain' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'library_reservations.txt';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('预约数据已导出', 'success');
+        });
+
+        // 导入预约数据
+        importDataBtn.addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        reservations = data;
+                        localStorage.setItem('libraryReservations', JSON.stringify(reservations));
+                        initializeSeats();
+                        showToast('预约数据已导入', 'success');
+                    } catch (error) {
+                        showToast('导入失败，文件格式错误', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        });
+
+        // 清空所有预约
+        resetAllBtn.addEventListener('click', function() {
+            if (confirm('确定要清空所有预约吗？')) {
+                reservations = {};
+                localStorage.setItem('libraryReservations', JSON.stringify(reservations));
+                initializeSeats();
+                showToast('已清空所有预约', 'success');
+            }
+        });
+
+        // 关闭模态框事件
+        closeModalBtn.addEventListener('click', closeReservationModal);
+        reservationModal.addEventListener('click', function(e) {
+            if (e.target === reservationModal) {
+                closeReservationModal();
+            }
+        });
+
+        // 显示提示消息
+        function showToast(message, type = '') {
+            toastEl.textContent = message;
+            toastEl.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toastEl.className = 'toast';
+            }, 3000);
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', initializeSeats);
+    </script>
+</body>
+</html>
